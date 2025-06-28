@@ -8,7 +8,23 @@ const router = express.Router();
 // Get all movies
 router.get("/", async (req, res) => {
   try {
-    const { search, genre, language, page = 1, limit = 10 } = req.query;
+    const movies = await Movie.find({ isActive: true }).sort({
+      releaseDate: -1,
+    });
+
+    res.json({
+      success: true,
+      data: movies,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Server error while fetching movies" });
+  }
+});
+
+// Filter movies
+router.get("/filter", async (req, res) => {
+  try {
+    const { search, genre, language } = req.query;
     const query = { isActive: true };
 
     if (search) {
@@ -21,25 +37,56 @@ router.get("/", async (req, res) => {
       query.language = language;
     }
 
-    const skip = (page - 1) * limit;
-    const movies = await Movie.find(query)
-      .sort({ releaseDate: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    const total = await Movie.countDocuments(query);
+    const movies = await Movie.find(query).sort({ releaseDate: -1 });
 
     res.json({
       success: true,
       data: movies,
-      pagination: {
-        current: parseInt(page),
-        pages: Math.ceil(total / limit),
-        total,
-      },
     });
   } catch (error) {
-    res.status(500).json({ error: "Server error while fetching movies" });
+    res.status(500).json({ error: "Server error while filtering movies" });
+  }
+});
+
+// Filter movies by date
+router.get("/filter/date/:date", async (req, res) => {
+  try {
+    const { date } = req.params;
+    const searchDate = new Date(date);
+    searchDate.setHours(0, 0, 0, 0);
+    const nextDate = new Date(searchDate);
+    nextDate.setDate(nextDate.getDate() + 1);
+
+    const shows = await Show.find({
+      date: { $gte: searchDate, $lt: nextDate },
+      isActive: true,
+    })
+      .populate("movie", "title posterUrl genre duration language certificate")
+      .populate("venue", "name address city")
+      .sort({ date: 1, time: 1 });
+
+    const moviesMap = new Map();
+    shows.forEach((show) => {
+      const movieId = show.movie._id.toString();
+      if (!moviesMap.has(movieId)) {
+        moviesMap.set(movieId, { movie: show.movie, shows: [] });
+      }
+      moviesMap.get(movieId).shows.push({
+        _id: show._id,
+        venue: show.venue,
+        date: show.date,
+        time: show.time,
+        price: show.price,
+        availableSeats: show.availableSeats,
+        showType: show.showType,
+      });
+    });
+
+    res.json({ success: true, data: Array.from(moviesMap.values()) });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Server error while filtering movies by date" });
   }
 });
 
@@ -60,7 +107,6 @@ router.get("/:id", async (req, res) => {
 router.get("/search/city/:city", async (req, res) => {
   try {
     const { city } = req.params;
-    const { date, page = 1, limit = 10 } = req.query;
 
     const venues = await Venue.find({
       city: { $regex: city, $options: "i" },
@@ -69,14 +115,6 @@ router.get("/search/city/:city", async (req, res) => {
 
     const venueIds = venues.map((venue) => venue._id);
     const showQuery = { venue: { $in: venueIds }, isActive: true };
-
-    if (date) {
-      const searchDate = new Date(date);
-      searchDate.setHours(0, 0, 0, 0);
-      const nextDate = new Date(searchDate);
-      nextDate.setDate(nextDate.getDate() + 1);
-      showQuery.date = { $gte: searchDate, $lt: nextDate };
-    }
 
     const shows = await Show.find(showQuery)
       .populate("movie", "title posterUrl genre duration language certificate")

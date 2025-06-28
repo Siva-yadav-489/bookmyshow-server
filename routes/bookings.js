@@ -115,7 +115,7 @@ router.post("/", authMiddleware, async (req, res) => {
 // Get user's booking history
 router.get("/history", authMiddleware, async (req, res) => {
   try {
-    const { page = 1, limit = 10, status } = req.query;
+    const { status } = req.query;
     const userId = req.user.id;
 
     const query = { user: userId };
@@ -123,25 +123,15 @@ router.get("/history", authMiddleware, async (req, res) => {
       query.bookingStatus = status;
     }
 
-    const skip = (page - 1) * limit;
     const bookings = await Booking.find(query)
       .populate("movie", "title posterUrl")
       .populate("venue", "name address")
       .populate("show", "date time screen")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    const total = await Booking.countDocuments(query);
+      .sort({ createdAt: -1 });
 
     res.json({
       success: true,
       data: bookings,
-      pagination: {
-        current: parseInt(page),
-        pages: Math.ceil(total / limit),
-        total,
-      },
     });
   } catch (error) {
     res
