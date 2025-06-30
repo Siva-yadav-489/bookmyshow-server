@@ -45,7 +45,8 @@ const sampleMovies = [
     duration: 143,
     language: "English",
     releaseDate: new Date("2024-01-15"),
-    posterUrl: "https://example.com/avengers-poster.jpg",
+    posterUrl:
+      "https://m.media-amazon.com/images/M/MV5BNDYxNjQyMjAtNTdiOS00NGYwLWFmNTAtNThmYjU5ZGI2YTI1XkEyXkFqcGdeQXVyMTMxODk2OTU@._V1_SX300.jpg",
     trailerUrl: "https://example.com/avengers-trailer.mp4",
     rating: 8.0,
     director: "Joss Whedon",
@@ -65,7 +66,8 @@ const sampleMovies = [
     duration: 148,
     language: "English",
     releaseDate: new Date("2024-02-01"),
-    posterUrl: "https://example.com/inception-poster.jpg",
+    posterUrl:
+      "https://m.media-amazon.com/images/M/MV5BMjAxMzY3NjcxNF5BMl5BanBnXkFtZTcwNTI5OTM0Mw@@._V1_SX300.jpg",
     trailerUrl: "https://example.com/inception-trailer.mp4",
     rating: 8.8,
     director: "Christopher Nolan",
@@ -85,7 +87,8 @@ const sampleMovies = [
     duration: 152,
     language: "English",
     releaseDate: new Date("2024-01-20"),
-    posterUrl: "https://example.com/dark-knight-poster.jpg",
+    posterUrl:
+      "https://m.media-amazon.com/images/M/MV5BMTMxNTMwODM0NF5BMl5BanBnXkFtZTcwODAyMTk2Mw@@._V1_SX300.jpg",
     trailerUrl: "https://example.com/dark-knight-trailer.mp4",
     rating: 9.0,
     director: "Christopher Nolan",
@@ -105,7 +108,8 @@ const sampleMovies = [
     duration: 169,
     language: "English",
     releaseDate: new Date("2024-02-10"),
-    posterUrl: "https://example.com/interstellar-poster.jpg",
+    posterUrl:
+      "https://m.media-amazon.com/images/M/MV5BZjdkOTU3MDktN2IxOS00OGEyLWFmMjktY2FiMmZkNWIyODZiXkEyXkFqcGdeQXVyMTMxODk2OTU@._V1_SX300.jpg",
     trailerUrl: "https://example.com/interstellar-trailer.mp4",
     rating: 8.6,
     director: "Christopher Nolan",
@@ -125,7 +129,8 @@ const sampleMovies = [
     duration: 128,
     language: "English",
     releaseDate: new Date("2024-01-25"),
-    posterUrl: "https://example.com/lalaland-poster.jpg",
+    posterUrl:
+      "https://upload.wikimedia.org/wikipedia/en/a/ab/La_La_Land_%28film%29.png",
     trailerUrl: "https://example.com/lalaland-trailer.mp4",
     rating: 8.0,
     director: "Damien Chazelle",

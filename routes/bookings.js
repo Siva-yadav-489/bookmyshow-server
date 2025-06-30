@@ -57,11 +57,26 @@ router.post("/", authMiddleware, async (req, res) => {
     const userId = req.user.id;
 
     const show = await Show.findById(showId)
-      .populate("movie", "title")
-      .populate("venue", "name address");
+      .populate("movie", "_id")
+      .populate("venue", "_id");
 
     if (!show || !show.isActive) {
       return res.status(404).json({ error: "Show not found or inactive" });
+    }
+
+    if (!userId || !showId || !show.movie || !show.venue) {
+      return res
+        .status(400)
+        .json({ error: "Missing required booking references" });
+    }
+    if (!Array.isArray(seats) || seats.length === 0) {
+      return res.status(400).json({ error: "No seats selected" });
+    }
+    if (!["card", "upi", "netbanking", "wallet"].includes(paymentMethod)) {
+      return res.status(400).json({ error: "Invalid payment method" });
+    }
+    if (!show.screen || !show.screen.name) {
+      return res.status(400).json({ error: "Show screen information missing" });
     }
 
     if (lockId) {
@@ -77,6 +92,23 @@ router.post("/", authMiddleware, async (req, res) => {
 
     const totalAmount = seats.reduce((sum, seat) => sum + seat.price, 0);
 
+    // Debug log for booking payload
+    console.log({
+      user: userId,
+      show: showId,
+      movie: show.movie._id,
+      venue: show.venue._id,
+      seats: seats,
+      totalAmount: totalAmount,
+      paymentMethod: paymentMethod,
+      showDate: show.date,
+      showTime: show.time,
+      screenName: show.screen.name,
+      numberOfSeats: seats.length,
+      bookingStatus: "confirmed",
+      paymentStatus: "completed",
+    });
+
     const booking = await Booking.create({
       user: userId,
       show: showId,
@@ -89,6 +121,8 @@ router.post("/", authMiddleware, async (req, res) => {
       showTime: show.time,
       screenName: show.screen.name,
       numberOfSeats: seats.length,
+      bookingStatus: "confirmed",
+      paymentStatus: "completed",
     });
 
     await Show.findByIdAndUpdate(showId, {
@@ -108,7 +142,8 @@ router.post("/", authMiddleware, async (req, res) => {
       data: populatedBooking,
     });
   } catch (error) {
-    res.status(500).json({ error: "Server error while creating booking" });
+    console.error("Booking creation error:", error);
+    res.status(500).json({ error: error.message || "Server error while creating booking" });
   }
 });
 

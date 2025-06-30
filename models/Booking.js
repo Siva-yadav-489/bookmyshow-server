@@ -102,7 +102,7 @@ bookingSchema.index({ show: 1, bookingStatus: 1 });
 bookingSchema.index({ bookingStatus: 1, createdAt: 1 });
 
 // Generate booking code before saving
-bookingSchema.pre("save", function (next) {
+bookingSchema.pre("validate", function (next) {
   if (!this.bookingCode) {
     this.bookingCode =
       "BK" + Date.now() + Math.random().toString(36).substr(2, 5).toUpperCase();
