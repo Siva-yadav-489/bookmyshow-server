@@ -105,7 +105,9 @@ bookingSchema.index({ bookingStatus: 1, createdAt: 1 });
 bookingSchema.pre("validate", function (next) {
   if (!this.bookingCode) {
     this.bookingCode =
-      "BK" + Date.now() + Math.random().toString(36).substr(2, 5).toUpperCase();
+      "BK" +
+      Date.now() +
+      Math.random().toString(36).substring(2, 5).toUpperCase();
   }
   next();
 });

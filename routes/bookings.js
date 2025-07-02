@@ -6,7 +6,27 @@ const authMiddleware = require("../middleware/authMiddleware.js");
 
 const router = express.Router();
 
-// Lock seats for booking
+// Unlock seats (deactivate a seat lock)
+router.post("/unlock-seats", authMiddleware, async (req, res) => {
+  try {
+    const { lockId } = req.body;
+    const userId = req.user.id;
+    if (!lockId) {
+      return res.status(400).json({ error: "Missing lockId" });
+    }
+    const seatLock = await SeatLock.findById(lockId);
+    if (!seatLock || !seatLock.isActive || seatLock.user.toString() !== userId.toString()) {
+      return res.status(400).json({ error: "Invalid or expired seat lock" });
+    }
+    seatLock.isActive = false;
+    await seatLock.save();
+    return res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Server error while unlocking seats" });
+  }
+});
+
+// Lock seats for booking (atomic operation)
 router.post("/lock-seats", authMiddleware, async (req, res) => {
   try {
     const { showId, seats } = req.body;
@@ -21,30 +41,48 @@ router.post("/lock-seats", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Not enough seats available" });
     }
 
-    const existingLocks = await SeatLock.find({
-      show: showId,
-      isActive: true,
-      seats: { $in: seats },
-    });
-
-    if (existingLocks.length > 0) {
-      return res.status(409).json({ error: "Some seats are already locked" });
+    // Use a transaction to ensure atomicity
+    const session = await SeatLock.startSession();
+    session.startTransaction();
+    try {
+      // Check for existing active locks or bookings for these seats
+      const existingLocks = await SeatLock.find({
+        show: showId,
+        isActive: true,
+        seats: { $in: seats },
+      }).session(session);
+      if (existingLocks.length > 0) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(409).json({ error: "Some seats are already locked" });
+      }
+      // Check for already booked seats
+      const bookings = await Booking.find({
+        show: showId,
+        bookingStatus: { $in: ["confirmed", "pending"] },
+        seats: { $in: seats },
+      }).session(session);
+      if (bookings.length > 0) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(409).json({ error: "Some seats are already booked" });
+      }
+      const seatLock = await SeatLock.create([{ show: showId, user: userId, seats: seats }], { session });
+      await session.commitTransaction();
+      session.endSession();
+      res.json({
+        success: true,
+        data: {
+          lockId: seatLock[0]._id,
+          seats: seats,
+          expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        },
+      });
+    } catch (err) {
+      await session.abortTransaction();
+      session.endSession();
+      res.status(500).json({ error: "Server error while locking seats" });
     }
-
-    const seatLock = await SeatLock.create({
-      show: showId,
-      user: userId,
-      seats: seats,
-    });
-
-    res.json({
-      success: true,
-      data: {
-        lockId: seatLock._id,
-        seats: seats,
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-      },
-    });
   } catch (error) {
     res.status(500).json({ error: "Server error while locking seats" });
   }
